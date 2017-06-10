@@ -1,6 +1,9 @@
-#lang s-exp framework/keybinding-lang
+#lang racket/base
 
 (require (only-in framework racket:sexp-snip%)
+         (only-in racket/gui text%)
+         (only-in racket/class send is-a? instantiate)
+         racket/unit
          drracket/tool)
 
 (provide tool@)
