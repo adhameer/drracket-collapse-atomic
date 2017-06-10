@@ -6,11 +6,14 @@
 (provide tool@)
 
 (define (bracket? char) (memq char '(#\( #\{ #\[ #\) #\} #\])))
+(define (quote? char) (memq char '(#\' #\` #\,)))
 
 ; Mostly copied from gui-lib/framework/private.racket.rkt.
 (define (collapse-from text left-pos right-pos)
   (when (and left-pos right-pos)
-    (let* ([left (send text get-character left-pos)]
+    (let* ([left (for/first ([pos (in-naturals left-pos)]
+                             #:when (not (quote? (send text get-character pos))))
+                   (send text get-character pos))] ; ignore quotes when choosing left-bracket
            [right (send text get-character (- right-pos 1))]
            ; If the selection is a compound s-expression, use its brackets.
            ; Otherwise, frame it with spaces.
