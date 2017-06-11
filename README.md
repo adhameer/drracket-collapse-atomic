@@ -21,7 +21,9 @@ If the text cursor is of equal distance from two different S-expressions, the on
 
 ## Installation
 
-```raco pkg install https://github.com/adhameer/drracket-collapse-atomic.git```
+```
+$ raco pkg install https://github.com/adhameer/drracket-collapse-atomic.git
+```
 
 ## Notes
 
