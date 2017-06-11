@@ -39,13 +39,25 @@
               left-pos left-pos)
         (send text end-edit-sequence)))))
 
+(define (expand-from text snip)
+  (let ([snips (send snip get-saved-snips)])
+    (send text begin-edit-sequence)
+    (let ([pos (send text get-snip-position snip)])
+      (send text delete pos (+ pos 1))
+      (let loop ([snips (reverse snips)])
+        (cond
+          [(null? snips) (void)]
+          [else (send text insert (send (car snips) copy) pos pos)
+                (loop (cdr snips))])))
+    (send text end-edit-sequence)))
+
+; For more easily chaining together text accessors.
 (define-syntax-rule (send-unless-false text command arg ...)
   (if (and arg ...)
       (send text command arg ...)
       #f))
 
 #| Return the position of the start of the closest s-expression to position in text.
-   This s-expression should always be atomic. (Need to check this.)
 
    Algorithm:
    • Need to find out if the start position is at the front of an s-expression, at the end
@@ -69,7 +81,8 @@
             (send-unless-false text get-backward-sexp (send text get-forward-sexp position))
             position))))
 
-;
+; Return two positions: the start of the nearest s-expression to start, and the end of
+; the nearest s-expression to end. Either of these values may be #f if not applicable.
 (define (expand-selection text start end)
   (let ([start-sexp (nearest-sexp text start)]
         [end-sexp (send-unless-false text get-forward-sexp (nearest-sexp text end))])
@@ -77,6 +90,7 @@
 
 ; Return the position of the start of the smallest s-expression in text containing
 ; both pos1 or pos2, or #f is there is none.
+; This isn't used anymore at the moment, but it might be in the future.
 (define (smallest-containing-sexp text pos1 pos2)
   (let loop ([pos1 pos1]
              [pos2 pos2])
@@ -90,51 +104,39 @@
       ; Otherwise, back out of the s-expression containing pos1.
       [else (loop (send text find-up-sexp pos1) pos2)])))
 
-(define (expand-from text snip)
-  (let ([snips (send snip get-saved-snips)])
-    (send text begin-edit-sequence)
-    (let ([pos (send text get-snip-position snip)])
-      (send text delete pos (+ pos 1))
-      (let loop ([snips (reverse snips)])
-        (cond
-          [(null? snips) (void)]
-          [else (send text insert (send (car snips) copy) pos pos)
-                (loop (cdr snips))])))
-    (send text end-edit-sequence)))
-
 (define (collapse-handler text event)
   (when (is-a? text text%)
-    (let* ([start-pos (send text get-start-position)])
-      ; If this is invoked on a selection, start-pos and end-pos are the start and end
-      ; positions of the selection. Otherwise, start-pos and end-pos are the same and
-      ; correspond to the position of the cursor.
-      (let* ([start-sexp (nearest-sexp text start-pos)]
-             [end-sexp (send-unless-false text get-forward-sexp start-sexp)]
-             [end-pos (send text get-end-position)])
-        (define-values (start end)
-          (cond
-            ; Something went wrong?
-            [(not (and start-sexp start-pos end-pos end-sexp)) (values #f #f)]
+    ; If this is invoked on a selection, start-pos and end-pos are the start and end
+    ; positions of the selection. Otherwise, start-pos and end-pos are the same and
+    ; correspond to the position of the cursor.
+    (let* ([start-pos (send text get-start-position)]
+           [start-sexp (nearest-sexp text start-pos)]
+           [end-sexp (send-unless-false text get-forward-sexp start-sexp)]
+           [end-pos (send text get-end-position)])
+      (define-values (start end)
+        (cond
+          ; Something went wrong?
+          [(not (and start-sexp start-pos end-pos end-sexp)) (values #f #f)]
 
-            ; For selections, assume that start-pos and end-pos are located in
-            ; sibling s-expressions. Expand the selection to include both those
-            ; s-expressions and collapse it.
-            [(not (= start-pos end-pos)) (expand-selection text start-pos end-pos)]
+          ; For selections, assume that start-pos and end-pos are located in
+          ; sibling s-expressions. Expand the selection to include both those
+          ; s-expressions and collapse it.
+          [(not (= start-pos end-pos)) (expand-selection text start-pos end-pos)]
             
-            ; Collapse the atomic s-expression containing the cursor.
-            [else (values start-sexp end-sexp)]))
+          ; Collapse the atomic s-expression containing the cursor.
+          [else (values start-sexp end-sexp)]))
 
-        ; Check if this was invoked on an already-collapsed s-expression.
-        ; If so, expand it instead.
-        (let* ([snip-before (send text find-snip end 'before)]
-               [snip-after (send text find-snip start 'after)]
-               [collapsed? (and snip-before
-                                snip-after
-                                (eq? snip-before snip-after)
-                                (is-a? snip-before racket:sexp-snip%))])
-          (if collapsed?
-              (expand-from text snip-before)
-              (collapse-from text start end)))))))
+      ; Check if this was invoked on an already-collapsed s-expression.
+      ; If so, expand it instead.
+      (let* ([snip-before (send text find-snip end 'before)]
+             [snip-after (send text find-snip start 'after)]
+             [collapsed? (and snip-before
+                              snip-after
+                              (eq? snip-before snip-after)
+                              (is-a? snip-before racket:sexp-snip%))])
+        (if collapsed?
+            (expand-from text snip-before)
+            (collapse-from text start end))))))
 
 (define tool@
   (unit
