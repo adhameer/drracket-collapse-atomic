@@ -3,24 +3,26 @@
 (require (only-in framework racket:sexp-snip%)
          (only-in racket/gui text%)
          (only-in racket/class send is-a? instantiate)
+         (only-in racket/match match)
          racket/unit
          drracket/tool)
 
 (provide tool@)
 
 (define (bracket? char) (memq char '(#\( #\{ #\[ #\) #\} #\])))
+(define (matching-bracket char) (match char [#\) #\(] [#\] #\[] [#\} #\{]))
 (define (quote? char) (memq char '(#\' #\` #\,)))
 
 ; Mostly copied from gui-lib/framework/private.racket.rkt.
 (define (collapse-from text left-pos right-pos)
   (when (and left-pos right-pos)
-    (let* ([left (for/first ([pos (in-naturals left-pos)]
-                             #:when (not (quote? (send text get-character pos))))
-                   (send text get-character pos))] ; ignore quotes when choosing left-bracket
-           [right (send text get-character (- right-pos 1))]
+    (let* ([right (send text get-character (- right-pos 1))]
            ; If the selection is a compound s-expression, use its brackets.
            ; Otherwise, frame it with spaces.
-           [left-bracket (if (bracket? left) left #\space)]
+           ; NOTE: Decide if a selection is a compound s-expression by looking
+           ; at the right bracket only, because delimiters like #; are counted as
+           ; parts of s-expressions.
+           [left-bracket (if (bracket? right) (matching-bracket right) #\space)]
            [right-bracket (if (bracket? right) right #\space)])
       (send text begin-edit-sequence)
       (send text split-snip left-pos)
@@ -77,7 +79,8 @@
          [backward-forward (send-unless-false text get-forward-sexp backward)])
     (if (and backward-forward (backward-forward . >= . position))
         backward
-        (if (and position (char-whitespace? (send text get-character position)))
+        (if position
+            ; Skip over spaces and comments
             (send-unless-false text get-backward-sexp (send text get-forward-sexp position))
             position))))
 
