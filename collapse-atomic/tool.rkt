@@ -10,10 +10,9 @@
 (provide tool@)
 
 (define (bracket? char) (memq char '(#\( #\{ #\[ #\) #\} #\])))
-(define (matching-bracket char) (match char [#\) #\(] [#\] #\[] [#\} #\{]))
-(define (quote? char) (memq char '(#\' #\` #\,)))
+(define (matching-delimiter char) (match char [#\) #\(] [#\] #\[] [#\} #\{] [_ #\space]))
 
-; Mostly copied from gui-lib/framework/private.racket.rkt.
+; Mostly copied from gui-lib/framework/private/racket.rkt.
 (define (collapse-from text left-pos right-pos)
   (when (and left-pos right-pos)
     (let* ([right (send text get-character (- right-pos 1))]
@@ -22,7 +21,7 @@
            ; NOTE: Decide if a selection is a compound s-expression by looking
            ; at the right bracket only, because delimiters like #; are counted as
            ; parts of s-expressions.
-           [left-bracket (if (bracket? right) (matching-bracket right) #\space)]
+           [left-bracket (matching-delimiter right)]
            [right-bracket (if (bracket? right) right #\space)])
       (send text begin-edit-sequence)
       (send text split-snip left-pos)
@@ -79,10 +78,11 @@
          [backward-forward (send-unless-false text get-forward-sexp backward)])
     (if (and backward-forward (backward-forward . >= . position))
         backward
-        (if position
-            ; Skip over spaces and comments
-            (send-unless-false text get-backward-sexp (send text get-forward-sexp position))
-            position))))
+        ; position could be at the head of an s-expression, or located in whitespace or
+        ; a comment preceding one. In the latter case, move position ahead to the
+        ; actual s-expression; in the former case these two operations should cancel out.
+        (send-unless-false text get-backward-sexp
+                           (send-unless-false text get-forward-sexp position)))))
 
 ; Return two positions: the start of the nearest s-expression to start, and the end of
 ; the nearest s-expression to end. Either of these values may be #f if not applicable.
