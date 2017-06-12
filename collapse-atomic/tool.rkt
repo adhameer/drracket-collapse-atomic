@@ -10,19 +10,19 @@
 (provide tool@)
 
 (define (bracket? char) (memq char '(#\( #\{ #\[ #\) #\} #\])))
-(define (matching-delimiter char) (match char [#\) #\(] [#\] #\[] [#\} #\{] [_ #\space]))
+(define (matching-delimiter char) (match char [#\) #\(] [#\] #\[] [#\} #\{] [_ #\nul]))
 
 ; Mostly copied from gui-lib/framework/private/racket.rkt.
 (define (collapse-from text left-pos right-pos)
   (when (and left-pos right-pos)
     (let* ([right (send text get-character (- right-pos 1))]
-           ; If the selection is a compound s-expression, use its brackets.
-           ; Otherwise, frame it with spaces.
+           ; If the selection is a compound s-expression, frame the collapsed snip with
+           ; its brackets.
            ; NOTE: Decide if a selection is a compound s-expression by looking
            ; at the right bracket only, because delimiters like #; are counted as
            ; parts of s-expressions.
            [left-bracket (matching-delimiter right)]
-           [right-bracket (if (bracket? right) right #\space)])
+           [right-bracket (if (bracket? right) right #\nul)])
       (send text begin-edit-sequence)
       (send text split-snip left-pos)
       (send text split-snip right-pos)
