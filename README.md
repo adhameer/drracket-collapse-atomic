@@ -21,9 +21,21 @@ If the text cursor is of equal distance from two different S-expressions, the on
 
 ## Installation
 
-```
-$ raco pkg install https://github.com/adhameer/drracket-collapse-atomic.git
-```
+- From the command line:
+
+    ```
+    $ raco pkg install https://github.com/adhameer/drracket-collapse-atomic.git
+    ```
+
+- Within DrRacket: Select the *Install Package...* option under the File menu, then enter
+
+    ```
+    https://github.com/adhameer/drracket-collapse-atomic.git
+    ```
+
+    as the package source. You may need to restart DrRacket for the changes to take effect. You can confirm that the tool is installed by looking at Preferences > Tools:
+
+![screenshot](readme7.png)
 
 ## Notes
 
