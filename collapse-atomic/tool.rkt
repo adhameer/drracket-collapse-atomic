@@ -1,13 +1,13 @@
-#lang racket/base
+#lang racket/unit
 
-(require (only-in framework racket:sexp-snip%)
+(require framework
          (only-in racket/gui text%)
          (only-in racket/class send is-a? instantiate)
          (only-in racket/match match)
-         racket/unit
          drracket/tool)
 
-(provide tool@)
+(import drracket:tool^)
+(export drracket:tool-exports^)
 
 (define (bracket? char) (memq char '(#\( #\{ #\[ #\) #\} #\])))
 (define (matching-delimiter char) (match char [#\) #\(] [#\] #\[] [#\} #\{] [_ #\nul]))
@@ -141,16 +141,12 @@
             (expand-from text snip-before)
             (collapse-from text start end))))))
 
-(define tool@
-  (unit
-    (import drracket:tool^)
-    (export drracket:tool-exports^)
 
-    (define (phase1) (void))
-    (define (phase2) (void))
+(define (phase1) (void))
+(define (phase2) (void))
 
-    (define (add-key-bindings keymap)
-      (send keymap add-function "collapse atomic s-expression" collapse-handler)
-      (send keymap map-function "c:s:space" "collapse atomic s-expression"))
+(define (add-key-bindings keymap)
+  (send keymap add-function "collapse atomic s-expression" collapse-handler)
+  (send keymap map-function "c:s:space" "collapse atomic s-expression"))
 
-    (add-key-bindings (drracket:rep:get-drs-bindings-keymap))))
+(add-key-bindings (drracket:rep:get-drs-bindings-keymap))
