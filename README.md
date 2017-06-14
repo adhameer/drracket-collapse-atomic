@@ -35,7 +35,7 @@ If the text cursor is of equal distance from two different S-expressions, the on
 
     as the package source. You may need to restart DrRacket for the changes to take effect. You can confirm that the tool is installed by looking at Preferences > Tools:
 
-![screenshot](readme7.png)
+    ![screenshot](readme7.png)
 
 ## Notes
 
